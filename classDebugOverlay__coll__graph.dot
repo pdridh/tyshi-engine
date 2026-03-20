@@ -1,0 +1,21 @@
+digraph "DebugOverlay"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=Helvetica,fontsize=10,labelfontname=Helvetica,labelfontsize=10];
+  node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4];
+  Node1 [id="Node000001",label="DebugOverlay",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Debug overlay for rendering engine and game information in the screen."];
+  Node2 -> Node1 [id="edge1_Node000001_Node000002",dir="back",color="darkorchid3",style="dashed",tooltip=" ",label=" m_engine",fontcolor="grey" ];
+  Node2 [id="Node000002",label="Engine",height=0.2,width=0.4,color="gray40", fillcolor="white", style="filled",URL="$classEngine.html",tooltip=" "];
+  Node3 -> Node2 [id="edge2_Node000002_Node000003",dir="back",color="darkorchid3",style="dashed",tooltip=" ",label=" m_resourceManager",fontcolor="grey" ];
+  Node3 [id="Node000003",label="ResourceManager",height=0.2,width=0.4,color="gray40", fillcolor="white", style="filled",URL="$classResourceManager.html",tooltip="Manages loading, retrieval and unloading of all engine resources."];
+  Node2 -> Node3 [id="edge3_Node000003_Node000002",dir="back",color="darkorchid3",style="dashed",tooltip=" ",label=" m_engine",fontcolor="grey" ];
+  Node1 -> Node2 [id="edge4_Node000002_Node000001",dir="back",color="darkorchid3",style="dashed",tooltip=" ",label=" m_debugOverlay",fontcolor="grey" ];
+  Node4 -> Node2 [id="edge5_Node000002_Node000004",dir="back",color="darkorchid3",style="dashed",tooltip=" ",label=" m_input",fontcolor="grey" ];
+  Node4 [id="Node000004",label="Input",height=0.2,width=0.4,color="gray40", fillcolor="white", style="filled",URL="$classInput.html",tooltip="Manages keyboard and mouse input state."];
+  Node5 -> Node4 [id="edge6_Node000004_Node000005",dir="back",color="darkorchid3",style="dashed",tooltip=" ",label=" m_mousePosition",fontcolor="grey" ];
+  Node5 [id="Node000005",label="Vec2\< f32 \>",height=0.2,width=0.4,color="gray40", fillcolor="white", style="filled",URL="$classVec2.html",tooltip=" "];
+  Node6 -> Node2 [id="edge7_Node000002_Node000006",dir="back",color="darkorchid3",style="dashed",tooltip=" ",label=" m_camera",fontcolor="grey" ];
+  Node6 [id="Node000006",label="Camera",height=0.2,width=0.4,color="gray40", fillcolor="white", style="filled",URL="$classCamera.html",tooltip="Manages game's view into the world and all the world space drawing."];
+  Node5 -> Node6 [id="edge8_Node000006_Node000005",dir="back",color="darkorchid3",style="dashed",tooltip=" ",label=" m_center",fontcolor="grey" ];
+}
