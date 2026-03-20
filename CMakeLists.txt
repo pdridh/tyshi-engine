@@ -1,90 +1,119 @@
 cmake_minimum_required(VERSION 3.7)
+project(tyshi-engine)
 
-project(tyshi2)
+set(engine_name tyshi-engine)
 
-# Set the name of the executable that comes out
-set(app_name app)
+file(GLOB_RECURSE ENGINE_SOURCES src/*.cpp src/*.c)
 
-# Gather source files
-# Add c files cuz of shit like glad
-file(GLOB_RECURSE SOURCE_FILES
-    ${CMAKE_SOURCE_DIR}/src/*.cpp
-    ${CMAKE_SOURCE_DIR}/src/*.c
+add_library(${engine_name} STATIC ${ENGINE_SOURCES})
+
+target_include_directories(${engine_name}
+    PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+target_compile_features(${engine_name} PUBLIC cxx_std_20)
 
-add_executable(${app_name} ${SOURCE_FILES})
+execute_process(
+    COMMAND git rev-parse --short=12 HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE ENGINE_GIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
 
+if(ENGINE_GIT_HASH STREQUAL "")
+    set(ENGINE_GIT_HASH "unknown")
+endif()
 
-# If theres a toolchain file we are auto assuming
-# build for windows we dont give a fuck
+target_compile_definitions(${engine_name} PUBLIC
+    $<$<CONFIG:Debug>:DEBUG_BUILD>
+    $<$<CONFIG:Release>:RELEASE_BUILD>
+    ENGINE_VERSION="${ENGINE_GIT_HASH}"
+)
+
 if(CMAKE_TOOLCHAIN_FILE)
-    message(STATUS "Building for Windows")
-
-    set(FINAL_BIN_DIR "${CMAKE_SOURCE_DIR}/bin/win_bin")
-
-    # MINGW requires different options so set different pkgconfig path for mingw 
-    set(ENV{PKG_CONFIG_PATH} "/usr/local/x86_64-w64-mingw32/lib/pkgconfig")
-    #install dlls for windows
-    install(DIRECTORY libs/ DESTINATION ${FINAL_BIN_DIR})
+    message(STATUS "tyshi-engine: Building for Windows (cross-compile)")
 else()
-    # we auto building for linux (probably not supporting any other platforms idk)
-    message(STATUS "Building for Linux/Default")
-    set(FINAL_BIN_DIR "${CMAKE_SOURCE_DIR}/bin/linux_bin")
+    message(STATUS "tyshi-engine: Building for Linux/Default")
 endif()
 
 find_package(PkgConfig REQUIRED)
-set(ALL_INCLUDE_DIRS)
-set(ALL_LIBRARY_DIRS)
-set(ALL_LIBRARIES)
-set(ALL_LDFLAGS)
-set(ALL_CFLAGS)
 
-function(add_pkg PACKAGE_NAME)
-    pkg_check_modules(${PACKAGE_NAME} REQUIRED ${ARGN})
-    
-    list(APPEND ALL_INCLUDE_DIRS ${${PACKAGE_NAME}_INCLUDE_DIRS})
-    set(ALL_INCLUDE_DIRS ${ALL_INCLUDE_DIRS} PARENT_SCOPE)
+pkg_check_modules(SDL3       REQUIRED sdl3)
+pkg_check_modules(SDL3_IMAGE REQUIRED sdl3-image)
+pkg_check_modules(SDL3_TTF   REQUIRED sdl3-ttf)
 
-    list(APPEND ALL_LIBRARY_DIRS ${${PACKAGE_NAME}_LIBRARY_DIRS})
-    set(ALL_LIBRARY_DIRS ${ALL_LIBRARY_DIRS} PARENT_SCOPE)
-    
-    list(APPEND ALL_LIBRARIES ${${PACKAGE_NAME}_LIBRARIES})
-    set(ALL_LIBRARIES ${ALL_LIBRARIES} PARENT_SCOPE)
-
-    
-    list(APPEND ALL_LDFLAGS ${${PACKAGE_NAME}_LDFLAGS})
-    set(ALL_LDFLAGS ${ALL_LDFLAGS} PARENT_SCOPE)
-    
-    list(APPEND ALL_CFLAGS ${${PACKAGE_NAME}_CFLAGS})
-    set(ALL_CFLAGS ${ALL_CFLAGS} PARENT_SCOPE)
-
-endfunction()
-
-add_pkg(SDL3 sdl3)
-add_pkg(SDL3_IMAGE sdl3-image)
-add_pkg(SDL3_TTF sdl3-ttf)
-
-#Compiler options
-target_compile_definitions(app PRIVATE 
-    $<$<CONFIG:Debug>:DEBUG_BUILD> 
-    $<$<CONFIG:Release>:RELEASE_BUILD>
+target_include_directories(${engine_name} PUBLIC
+    ${SDL3_INCLUDE_DIRS}
+    ${SDL3_IMAGE_INCLUDE_DIRS}
+    ${SDL3_TTF_INCLUDE_DIRS}
 )
 
-target_compile_features(${app_name} PRIVATE cxx_std_17)
+target_link_directories(${engine_name} PUBLIC
+    ${SDL3_LIBRARY_DIRS}
+    ${SDL3_IMAGE_LIBRARY_DIRS}
+    ${SDL3_TTF_LIBRARY_DIRS}
+)
+
+target_link_libraries(${engine_name} PUBLIC
+    ${SDL3_LIBRARIES}
+    ${SDL3_IMAGE_LIBRARIES}
+    ${SDL3_TTF_LIBRARIES}
+)
+
+target_link_options(${engine_name} PUBLIC
+    ${SDL3_LDFLAGS_OTHER}
+    ${SDL3_IMAGE_LDFLAGS_OTHER}
+    ${SDL3_TTF_LDFLAGS_OTHER}
+)
+
+target_compile_options(${engine_name} PUBLIC
+    ${SDL3_CFLAGS_OTHER}
+    ${SDL3_IMAGE_CFLAGS_OTHER}
+    ${SDL3_TTF_CFLAGS_OTHER}
+)
+
 
 if(CMAKE_TOOLCHAIN_FILE)
+    target_link_libraries(${engine_name} PUBLIC -static-libstdc++ -static-libgcc)
+
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        # If its debug build then we DO want the console for windows 
-        list(FILTER ALL_LDFLAGS EXCLUDE REGEX ".*-mwindows.*")
+        target_link_options(${engine_name} PUBLIC -mconsole)
+    else()
+        target_link_options(${engine_name} PUBLIC -mwindows)
     endif()
 endif()
 
-target_include_directories(app PRIVATE ${ALL_INCLUDE_DIRS})
-target_link_directories(app PRIVATE ${ALL_LIBRARY_DIRS})
-target_link_libraries(app PRIVATE ${ALL_LIBRARIES} -static-libstdc++ -static-libgcc)
-target_link_options(app PRIVATE ${ALL_LDFLAGS})
-target_compile_options(app PRIVATE ${ALL_CFLAGS})
 
-install(TARGETS app RUNTIME DESTINATION ${FINAL_BIN_DIR})
-file(COPY assets DESTINATION ${FINAL_BIN_DIR})
+
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    message(STATUS "tyshi-engine: Building standalone with test app")
+
+    file(GLOB TEST_SOURCES test/*.cpp test/*.h)
+
+    if(CMAKE_TOOLCHAIN_FILE)
+    execute_process(
+        COMMAND pkg-config --variable=prefix sdl3
+        OUTPUT_VARIABLE SDL3_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    install(FILES
+        ${SDL3_PREFIX}/bin/SDL3.dll
+        ${SDL3_PREFIX}/bin/SDL3_image.dll
+        ${SDL3_PREFIX}/bin/SDL3_ttf.dll
+        DESTINATION ${CMAKE_INSTALL_PREFIX}
+    )
+    else()
+        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/bin/linux" CACHE PATH "" FORCE)
+    endif()
+
+    add_executable(tyshi-engine-test ${TEST_SOURCES})
+    target_link_libraries(tyshi-engine-test PRIVATE ${engine_name})
+
+    install(TARGETS tyshi-engine-test RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif()
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/assets/
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/engine/assets
+)

@@ -1,0 +1,40 @@
+BasedOnStyle: Google
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+BreakBeforeBraces: Allman
+
+AccessModifierOffset: -4
+IndentCaseLabels: true
+NamespaceIndentation: None
+
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+SpacesInParens: Never
+SpaceInEmptyBlock: false
+
+ColumnLimit: 100
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+
+Cpp11BracedListStyle: true
+Standard: c++20

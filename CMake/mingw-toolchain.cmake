@@ -10,3 +10,6 @@ set(CMAKE_FIND_ROOT_PATH /usr/local/x86_64-w64-mingw32)
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+# Set the pkgconfig file for finding pkges for mingw
+set(ENV{PKG_CONFIG_PATH} "/usr/local/x86_64-w64-mingw32/lib/pkgconfig")
