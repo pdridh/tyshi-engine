@@ -6,15 +6,16 @@ This engine is a byproduct of building my 2D survival game tyshi. I extracted th
 
 Tools and libraries required to build and run the engine. 
 
-Can only be built on Linux, targeting both Linux and Windows. I have not tested building on Windows.  
+Can only be built on Linux, targeting both Linux and Windows. I have not tested building on Windows (It might be possible with changes in [CMakeLists.txt](CMakeLists.txt)).  
 
 ### Tools 
 
 - `g++` - Compiling the source files
-- `mingw-w64`- Cross-compiling to windows 
 - `pkg-config` - Finding packages and getting their flags for `cmake`
 - `cmake` -  Building, linking and setting compiler flags 
 - `make` - Running `cmake` commands
+- `mingw-w64`
+    - Cross-compiling to **64-bit Windows** (The engine code has only been tested in **64-bit Windows** but the toolchain can be changed if targeting different platform and/or architecture. For standalone builds you have to provide a different toolchain file in the [Makefile](Makefile).)
 
 ### Libraries
 
@@ -25,29 +26,6 @@ Libraries and their versions used during development.
 | SDL3 | 3.2.4 |
 | SDL3_image | 3.2.0 |
 | SDL3_ttf | 3.1.0 |
-
-
-## Setup 
-
-Before using this as a submodule or building it as a standalone executable, there are some things to setup. Obviously, everything in the requirements must be installed.
-
-At the time of writing this, you cannot install the SDL3 via package managers like `apt` as it is very new. So it must be manually installed.
-
-For Linux, you have to build SDL3 from source.
-
-If cross-compiling for Windows then the appropriate Mingw SDL3 must also be installed, getting it from SDL3's releases is probably the easiest way. `cmake` expects a toolchain file for it to know that it is building for Windows. In the [Makefile](Makefile) the toolchain file path is set to [CMake/mingw-toolchain.cmake](CMake/mingw-toolchain.cmake). This toolchain file sets the Windows libraries path as **/usr/local/x86_64-w64-mingw32** and pkgconfig file for mingw as **/usr/local/x86_64-w64-mingw32/lib/pkgconfig**.
-
-Therefore, MinGW SDL3 must be installed to the expected path:
-```
-/usr/local/x86_64-w64-mingw32/
-├── bin/          - SDL3.dll, SDL3_image.dll, SDL3_ttf.dll
-├── include/      - SDL3 headers
-└── lib/
-    └── pkgconfig/ - sdl3.pc, sdl3-image.pc, sdl3-ttf.pc
-```
-
-So, you either need the libraries and pkgconfig file in that path or you can modify the toolchain file. If using a different toolchain file, set `TOOLCHAIN_FILE` in [Makefile](Makefile) to it's filepath. 
-
 
 ## Use as a submodule
 
@@ -60,11 +38,10 @@ git submodule add https://github.com/pdridh/tyshi-engine engine/
 git submodule update --init
 ```
 
-Now for the main part, the root repo needs it's own `CMakeLists.txt` to build and link the engine as a static library.
+Now for the main part, the root repo needs it's own **CMakeLists.txt** to build and link the engine as a static library.
 
-`CMAKE_INSTALL_PREFIX` must be set before `add_subdirectory()` because the engine's [`CMakeLists.txt`](CMakeLists.txt) uses it to install the engine assets to the root repo's target path.
+In the root repo's **CMakelists.txt**, `CMAKE_INSTALL_PREFIX` must be set before `add_subdirectory()` because the engine's [`CMakeLists.txt`](CMakeLists.txt) uses it to install the engine assets to the root repo's target path:
 
-In the root repo's `CMakeLists.txt`:
 ```cmake
 if(CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/bin/windows" CACHE PATH "" FORCE)
@@ -80,9 +57,6 @@ target_include_directories(game-target PRIVATE engine/include/)
 target_link_libraries(game-target PRIVATE tyshi-engine)
 ```
 
-When building for windows, it requires a toolchain file, it is recommended to use the engine's [toolchain file](CMake/mingw-toolchain.cmake) as the toolchain file when building the game too. See [Building for windows](#building-for-windows).
-
-
 The game code can access the Engine's API by including them as `"Engine/File.h"`, for example:
 
 ```cpp
@@ -90,12 +64,29 @@ The game code can access the Engine's API by including them as `"Engine/File.h"`
 #include "Engine/Vec2.h"
 ```
 
-## Building
+---
 
-For testing and/or developing the engine can be built as a standalone project. If `cmake` is ran with this repository as the root, then, it uses the files in [test/](test/) to build an executable.
+### Building for Windows
+
+`cmake` requires a toolchain file for cross compiling, so it must be provided otherwise it will build for Linux automatically. The toolchain file must set these at least:
+
+| CMake Variable | Recommended |
+|---------|---------|
+| `CMAKE_SYSTEM_NAME` | Windows |
+| `CMAKE_SYSTEM_PROCESSOR` | x86_64 |
+| `CMAKE_C_COMPILER` | x86_64-w64-mingw32-gcc |
+| `CMAKE_CXX_COMPILER` | x86_64-w64-mingw32-g++ |
+| `CMAKE_FIND_ROOT_PATH` | Wherever you installed your target system files and libraries  |
+| `ENV{PKG_CONFIG_PATH}` | Path to the pkgconfig of the toolchain you are using |
+
+The engine is responsible for installing and adding it's own required dlls to the target executable's directory. It uses the pkgconfig set above to find the dlls.
+
+
+## Standalone Build
+
+For testing and/or developing, the engine can be built as a standalone project. If `cmake` is ran with this repository as the root then it uses the files in [test/](test/) to build an executable.
 
 The [Makefile](Makefile) has targets that can be used to easily run `cmake` commands with the appropriate flags set based on the target.
-
 
 ### Building for Linux
 

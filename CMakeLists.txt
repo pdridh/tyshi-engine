@@ -3,7 +3,7 @@ project(tyshi-engine)
 
 set(engine_name tyshi-engine)
 
-file(GLOB_RECURSE ENGINE_SOURCES src/*.cpp src/*.c)
+file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS src/*.cpp src/*.c)
 
 add_library(${engine_name} STATIC ${ENGINE_SOURCES})
 
@@ -32,7 +32,7 @@ target_compile_definitions(${engine_name} PUBLIC
     ENGINE_VERSION="${ENGINE_GIT_HASH}"
 )
 
-if(CMAKE_TOOLCHAIN_FILE)
+if(WIN32)
     message(STATUS "tyshi-engine: Building for Windows (cross-compile)")
 else()
     message(STATUS "tyshi-engine: Building for Linux/Default")
@@ -75,43 +75,45 @@ target_compile_options(${engine_name} PUBLIC
 )
 
 
-if(CMAKE_TOOLCHAIN_FILE)
-    target_link_libraries(${engine_name} PUBLIC -static-libstdc++ -static-libgcc)
-
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        target_link_options(${engine_name} PUBLIC -mconsole)
-    else()
-        target_link_options(${engine_name} PUBLIC -mwindows)
-    endif()
-endif()
-
-
-
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     message(STATUS "tyshi-engine: Building standalone with test app")
 
-    file(GLOB TEST_SOURCES test/*.cpp test/*.h)
+    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS test/*.cpp test/*.h)
 
-    if(CMAKE_TOOLCHAIN_FILE)
-    execute_process(
-        COMMAND pkg-config --variable=prefix sdl3
-        OUTPUT_VARIABLE SDL3_PREFIX
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    install(FILES
-        ${SDL3_PREFIX}/bin/SDL3.dll
-        ${SDL3_PREFIX}/bin/SDL3_image.dll
-        ${SDL3_PREFIX}/bin/SDL3_ttf.dll
-        DESTINATION ${CMAKE_INSTALL_PREFIX}
-    )
+    if(WIN32)
+        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/bin/windows")
+
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            target_link_options(${engine_name} PRIVATE -mconsole)
+        else()
+            target_link_options(${engine_name} PRIVATE -mwindows)
+        endif()
     else()
-        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/bin/linux" CACHE PATH "" FORCE)
+        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/bin/linux")
     endif()
 
     add_executable(tyshi-engine-test ${TEST_SOURCES})
     target_link_libraries(tyshi-engine-test PRIVATE ${engine_name})
 
     install(TARGETS tyshi-engine-test RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif()
+
+
+if(WIN32)
+    target_link_libraries(${engine_name} PRIVATE -static-libstdc++ -static-libgcc)
+
+    execute_process(
+        COMMAND pkg-config --variable=prefix sdl3
+        OUTPUT_VARIABLE SDL3_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    install(FILES
+        ${SDL3_PREFIX}/bin/SDL3.dll
+        ${SDL3_PREFIX}/bin/SDL3_image.dll
+        ${SDL3_PREFIX}/bin/SDL3_ttf.dll
+        DESTINATION ${CMAKE_INSTALL_PREFIX}
+    )
 endif()
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/assets/
