@@ -12,6 +12,8 @@ Engine::Engine(const EngineConfig& config)
     }
 }
 
+Engine::~Engine() { clean(); }
+
 bool Engine::init(const EngineConfig& config)
 {
     if (!SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO))
@@ -177,6 +179,7 @@ void Engine::run()
     if (m_states.empty())
     {
         printf("No states added!\n");
+        clean();
         return;
     }
 

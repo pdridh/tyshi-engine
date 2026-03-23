@@ -28,6 +28,7 @@ class Engine
 {
 public:
     Engine(const EngineConfig& config);
+    ~Engine();
 
     std::string resolveRelativePath(const std::string& path);
 

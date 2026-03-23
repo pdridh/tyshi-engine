@@ -34,7 +34,7 @@ The engine can be used as a submodule in other git repos. This is the main reaso
 To add to other repos:
 
 ```bash
-git submodule add https://github.com/pdridh/tyshi-engine engine/
+git submodule add git@github.com:pdridh/tyshi-engine.git engine/
 git submodule update --init
 ```
 
