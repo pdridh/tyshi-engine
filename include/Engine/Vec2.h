@@ -222,6 +222,20 @@ public:
     }
 
     /**
+     * @brief    Returns the dot product with the target vector
+     *
+     * @todo Perhaps: add the one with angles (i THINK i remember there being one with the cosine n
+     * shi, it might be useful but im adding this for perlin so yeah i will add as i require)
+     *
+     * @param    target                        Vector to get dot product with
+     * @return   f32                           Dot product of the vectors
+     */
+    inline f32 dotProduct(const Vec2<T>& target) const
+    {
+        return this->x * target.x + this->y + target.y;
+    }
+
+    /**
      * @brief    Multiplies the components of this vector by a factor
      *
      * @warning Modifies this vector, use @ref getScaled to do this operation without modifying this
