@@ -72,3 +72,40 @@ f32 PerlinNoise2D::grad(i32 hash, f32 x, f32 y)
             return 0;
     }
 }
+
+FractalPerlinNoise2D::FractalPerlinNoise2D(u64 seed) : m_perlinNoise{seed}, m_config{Config{}} {}
+
+FractalPerlinNoise2D::FractalPerlinNoise2D(u64 seed, Config cfg)
+    : m_perlinNoise{seed}, m_config{cfg}
+{
+}
+
+void FractalPerlinNoise2D::setConfig(Config cfg) { m_config = cfg; }
+
+f32 FractalPerlinNoise2D::noise(f32 x, f32 y) const
+{
+    f32 value     = 0.0;
+    f32 amplitude = m_config.amplitude;
+    f32 frequency = m_config.frequency;
+    f32 maxValue  = 0.0;
+
+    for (i32 i = 0; i < m_config.octaves; ++i)
+    {
+        f32 n = m_perlinNoise.noise(x * frequency, y * frequency);
+        value += n * amplitude;
+        maxValue += amplitude;
+        amplitude *= m_config.persistence;
+        frequency *= m_config.lacunarity;
+    }
+
+    // Normalize
+    return value / maxValue;
+}
+
+f32 FractalPerlinNoise2D::warpedNoise(f32 x, f32 y, f32 warpStrength, f32 offsetXForX,
+                                      f32 offsetYForX, f32 offsetXForY, f32 offsetYforY) const
+{
+    f32 ox = noise(x + offsetXForX, y + offsetYForX);
+    f32 oy = noise(x + offsetXForY, y + offsetYforY);
+    return noise(x + warpStrength * ox, y + warpStrength * oy);
+}

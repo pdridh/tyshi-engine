@@ -79,7 +79,7 @@ public:
     PerlinNoise2D(u64 seed);
 
     /**
-     * @brief    Returns the noise value for the point P(x, y)
+     * @brief    Returns the noise value for the point P(x, y) in the range [1, -1]
      *
      * Process of noise calculation:
      *
@@ -108,7 +108,7 @@ public:
      *
      * @param    x                             x coordinate of the point to query
      * @param    y                             y coordinate of the point to query
-     * @return   f32                           Noise value for P(x, y)
+     * @return   f32                           Noise value for P(x, y) in the range [1, -1]
      */
     f32 noise(f32 x, f32 y) const;
 
@@ -163,4 +163,124 @@ private:
 
     std::array<i32, PERMUTATION_TABLE_ARRAY_SIZE>
         m_permutationTable;  ///< Stores a random sequence to get hash values for each corner
+};
+
+/**
+ * @brief    Generates more natural, configurable 2D noise values using @ref PerlinNoise2D
+ *
+ * Sums up multiple scales of a given point using the configuration provided and returns the value.
+ *
+ * Basically, provides finer and more natural detail for a given point.
+ *
+ * This is done by calling the @ref PerlinNoise2D::noise function multiple times with the x, y of
+ * the point scaled based on the configurations, for more details see @ref Config.
+ *
+ */
+class FractalPerlinNoise2D
+{
+public:
+    /**
+     * @brief    Configurations that affect the noise process
+     *
+     *
+     * 1) Octaves - Number of times the smoothing process is done.
+     *
+     * 2) Frequency - Scaling factor for input point in each octave
+     *
+     * 3) Lacunarity - Scaling factor of the frequency for each octave (How much a layer zooms
+     * compared to the previous).
+     *
+     * 4) Amplitude - Scaling factor for the output value of noise for each octave (How much a layer
+     * contributes to the final value)
+     *
+     * 5) Persistence - Scaling factor for the amplitude for each octave
+     */
+    struct Config
+    {
+        i32 octaves     = 10;   ///< Number of times the smoothing process is done
+        f32 frequency   = 1.0;  ///< Scaling factor for input point in each octave
+        f32 lacunarity  = 2.0;  ///< Scaling factor of the frequency for each octave
+        f32 amplitude   = 1.0;  ///< Scaling factor for the output value of noise for each octave
+        f32 persistence = 0.5;  ///< Scaling factor for the amplitude for each octave
+    };
+
+    /**
+     * @brief    Seeds the internal @ref m_perlinNoise and sets @ref m_config with default values
+     *
+     * @param    seed                          Seed for the internal @ref PerlinNoise2D
+     */
+    FractalPerlinNoise2D(u64 seed);
+
+    /**
+     * @brief    Seeds the internal @ref PerlinNoise2D  and sets @ref m_config with the provided
+     * configurations
+     *
+     * For configuration details, see @ref Config. For changing configurations after construction,
+     * use @ref setConfig.
+     *
+     * @param    seed                          Seed for the internal @ref PerlinNoise2D
+     * @param    cfg                           Configuration that will be used by subsequent @ref
+     * noise calls
+     */
+    FractalPerlinNoise2D(u64 seed, Config cfg);
+
+    /**
+     * @brief    Sets the configuration used when getting noise values
+     *
+     * All subsequent calls to @ref noise will use the configurations set when this is called.
+     *
+     * For configuration details and how they affect the noise process see @ref Config.
+     *
+     * @param    cfg                           Configuration that will be used by subsequent @ref
+     * noise calls
+     */
+    void setConfig(Config cfg);
+
+    /**
+     * @brief    Returns natural 2D noise values using @ref PerlinNoise2D and the provided
+     * configurations in the range [1, -1]
+     *
+     *
+     * For configuration details and how they affect the noise process see @ref Config.
+     *
+     * Use @ref setConfig to change the configurations BEFORE calling this function.
+     *
+     * @param    x                             X coordinate of the point
+     * @param    y                             Y coordinate of the point
+     * @return   f32                           Natural, deterministic noise value using the
+     * configurations in the range [1, -1]
+     */
+    f32 noise(f32 x, f32 y) const;
+
+    /**
+     * @brief    Returns domain-warped 2D noise
+     *
+     * Uses the @ref noise function to get warp values for the input point using an offset
+     * vector. Then, the warp values are added to the input point before evaluation the final
+     * noise value.
+     *
+     * The warp is controlled by:
+     *
+     * 1) offsets - Displaces the input coordinates x and y
+     *
+     * 2) warpStrength - Scales how much the offset affects the input point
+     *
+     *
+     * @param    x                             X coordinate of the point
+     * @param    y                             Y coordinate of the point
+     * @param    warpStrength                  Scaling factor for how much the warps affect the
+     * input point
+     * @param    offsetXForX                   X offset for the warp value for X
+     * @param    offsetYForX                   Y offset for the warp value for X
+     * @param    offsetXForY                   X offset for the warp value for Y
+     * @param    offsetYforY                   Y offset for the warp value for Y
+     * @return   f32                           Warped, natural & deterministic noise value for P(x,
+     * y) in the range [1, -1]
+     */
+    f32 warpedNoise(f32 x, f32 y, f32 warpStrength, f32 offsetXForX = 0.f, f32 offsetYForX = 0.f,
+                    f32 offsetXForY = 5.2f, f32 offsetYforY = 1.3f) const;
+
+private:
+    PerlinNoise2D m_perlinNoise;  ///< Underlying perlin noise
+    Config        m_config;       ///< Current configurations that affect the noise process
 };
